@@ -1,7 +1,7 @@
 """Configuration loading and validation for OpenAPI contract tooling."""
 
 from __future__ import annotations
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 import tomllib
@@ -76,7 +76,16 @@ class Contract:
         Returns:
             A copy of this contract using ``version``.
         """
-        return replace(self, version=version)
+        return Contract(
+            name=self.name,
+            version=version,
+            repository=self.repository,
+            tag_template=self.tag_template,
+            artifact_template=self.artifact_template,
+            sha256=self.sha256,
+            output=self.output,
+            explicit_url=self.explicit_url,
+        )
 
 @dataclass(frozen=True)
 class Generator:

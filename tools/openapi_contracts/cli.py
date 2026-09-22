@@ -8,6 +8,9 @@ from .generate import GenerationError, generate
 from .sync import ContractSyncError, sync_contract
 from .update import ContractUpdateError, update_contract
 
+DEFAULT_PYPROJECT_PATH = "pyproject.toml"
+
+
 def contract_sync_main() -> None:
     """Run the command-line workflow that synchronizes configured contracts.
 
@@ -16,7 +19,7 @@ def contract_sync_main() -> None:
     """
     p = argparse.ArgumentParser(prog="contract-sync")
     p.add_argument("contracts", nargs="*")
-    p.add_argument("--pyproject", default="pyproject.toml")
+    p.add_argument("--pyproject", default=DEFAULT_PYPROJECT_PATH)
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     try:
@@ -41,7 +44,7 @@ def contract_update_main() -> None:
     parser = argparse.ArgumentParser(prog="contract-update")
     parser.add_argument("contract")
     parser.add_argument("--version", required=True)
-    parser.add_argument("--pyproject", default="pyproject.toml")
+    parser.add_argument("--pyproject", default=DEFAULT_PYPROJECT_PATH)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     try:
@@ -69,7 +72,7 @@ def generate_source_main() -> None:
     role.add_argument("--rest-server", action="store_true")
     role.add_argument("--rest-client", action="store_true")
     p.add_argument("--api", required=True)
-    p.add_argument("--pyproject", default="pyproject.toml")
+    p.add_argument("--pyproject", default=DEFAULT_PYPROJECT_PATH)
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     try:

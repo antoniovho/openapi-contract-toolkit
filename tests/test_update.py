@@ -63,9 +63,10 @@ class UpdateTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             pyproject = Path(directory) / "pyproject.toml"
             pyproject.write_text(CONFIG)
+            configuration = load_config(pyproject)
 
             with self.assertRaisesRegex(ContractUpdateError, "Unknown contract"):
-                update_contract(load_config(pyproject), pyproject, "missing", "1.1.0")
+                update_contract(configuration, pyproject, "missing", "1.1.0")
 
     def test_when_dry_run_expect_no_download_or_configuration_change(self):
         with tempfile.TemporaryDirectory() as directory:
