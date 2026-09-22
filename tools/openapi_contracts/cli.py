@@ -1,3 +1,5 @@
+"""Command-line entry points for OpenAPI contract tooling."""
+
 from __future__ import annotations
 import argparse
 import sys
@@ -6,6 +8,11 @@ from .generate import GenerationError, generate
 from .sync import ContractSyncError, sync_contract
 
 def contract_sync_main() -> None:
+    """Run the command-line workflow that synchronizes configured contracts.
+
+    Raises:
+        SystemExit: With status 1 when configuration or synchronization fails.
+    """
     p = argparse.ArgumentParser(prog="contract-sync")
     p.add_argument("contracts", nargs="*")
     p.add_argument("--pyproject", default="pyproject.toml")
@@ -24,6 +31,11 @@ def contract_sync_main() -> None:
         raise SystemExit(1) from e
 
 def generate_source_main() -> None:
+    """Run the command-line workflow that generates source from a contract.
+
+    Raises:
+        SystemExit: With status 1 when configuration or generation fails.
+    """
     p = argparse.ArgumentParser(prog="generate-source")
     role = p.add_mutually_exclusive_group(required=True)
     role.add_argument("--rest-server", action="store_true")

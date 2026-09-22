@@ -1,3 +1,5 @@
+"""OpenAPI Generator command construction and execution."""
+
 from __future__ import annotations
 import os
 import shlex
@@ -6,14 +8,35 @@ from .config import Configuration, Generator
 from .sync import verify_contract
 
 class GenerationError(RuntimeError):
-    pass
+    """Raised when OpenAPI source generation cannot complete."""
 
 def _value(value: object) -> str:
+    """Convert a generator property value to its command-line representation.
+
+    Args:
+        value: Generator property value to serialize.
+
+    Returns:
+        The string representation expected by OpenAPI Generator.
+    """
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value)
 
 def build_command(config: Configuration, definition: Generator) -> list[str]:
+    """Build and validate the OpenAPI Generator command for a definition.
+
+    Args:
+        config: Resolved toolkit configuration.
+        definition: Generator definition to invoke.
+
+    Returns:
+        Command arguments suitable for ``subprocess.run``.
+
+    Raises:
+        ContractSyncError: If the local contract is absent or has an invalid checksum.
+        GenerationError: If the generator command is empty.
+    """
     contract = config.contracts[definition.contract]
     verify_contract(contract)
     command = shlex.split(
@@ -37,6 +60,17 @@ def build_command(config: Configuration, definition: Generator) -> list[str]:
     return command
 
 def generate(config: Configuration, definition: Generator, dry_run: bool = False) -> None:
+    """Generate source code for a configured contract definition.
+
+    Args:
+        config: Resolved toolkit configuration.
+        definition: Generator definition to invoke.
+        dry_run: Whether to print the command without executing it.
+
+    Raises:
+        ContractSyncError: If the local contract is absent or has an invalid checksum.
+        GenerationError: If the generator executable cannot run successfully.
+    """
     command = build_command(config, definition)
     print(" ".join(shlex.quote(p) for p in command))
     if dry_run:

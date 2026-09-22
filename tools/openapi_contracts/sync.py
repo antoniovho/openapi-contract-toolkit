@@ -1,3 +1,5 @@
+"""Contract downloading, checksum validation, and local storage."""
+
 from __future__ import annotations
 import hashlib
 import os
@@ -8,9 +10,17 @@ import urllib.request
 from .config import Contract
 
 class ContractSyncError(RuntimeError):
-    pass
+    """Raised when synchronizing or validating a contract fails."""
 
 def sha256_file(path: Path) -> str:
+    """Return the SHA-256 digest of a file as a hexadecimal string.
+
+    Args:
+        path: Path to the file to hash.
+
+    Returns:
+        Lowercase hexadecimal SHA-256 digest.
+    """
     digest = hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -18,6 +28,14 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 def verify_contract(contract: Contract) -> None:
+    """Verify that a local contract exists and matches its configured digest.
+
+    Args:
+        contract: Contract whose local artifact is verified.
+
+    Raises:
+        ContractSyncError: If the artifact is missing or has an invalid checksum.
+    """
     if not contract.output.is_file():
         raise ContractSyncError(
             f"Contract '{contract.name}' not found: {contract.output}"
@@ -30,6 +48,15 @@ def verify_contract(contract: Contract) -> None:
         )
 
 def sync_contract(contract: Contract, dry_run: bool = False) -> None:
+    """Download, validate, and atomically store a configured contract artifact.
+
+    Args:
+        contract: Contract definition identifying the artifact to synchronize.
+        dry_run: Whether to print the planned synchronization without downloading.
+
+    Raises:
+        ContractSyncError: If the configured checksum is invalid or download fails.
+    """
     if len(contract.sha256) != 64 or any(
         c not in "0123456789abcdef" for c in contract.sha256
     ):
