@@ -1,0 +1,165 @@
+name: Release Toolkit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-toolkit
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          version: "0.10.6"
+
+      - name: Resolve release version
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "[project].version must be a SemVer release version: $VERSION"
+            exit 1
+          fi
+
+          TAG="v$VERSION"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+          echo "Tag:     $TAG"
+
+      - name: Ensure release does not already exist
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if git show-ref --tags --verify --quiet "refs/tags/$TAG"; then
+            echo "Tag already exists: $TAG"
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Remote tag already exists: $TAG"
+            exit 1
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release already exists: $TAG"
+            exit 1
+          fi
+
+      - name: Check version against previous releases
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          LATEST_VERSION="$(
+            {
+              git tag --list 'v*' \
+                | sed 's/^v//' \
+                | grep -E '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' \
+                || true
+            } \
+              | sort -V \
+              | tail -n 1
+          )"
+
+          if [[ -z "$LATEST_VERSION" ]]; then
+            echo "No previous release found."
+            exit 0
+          fi
+
+          if [[ "$(printf '%s\n%s\n' "$LATEST_VERSION" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]]; then
+            echo "Version $VERSION must be greater than the latest release $LATEST_VERSION."
+            exit 1
+          fi
+
+          if [[ "$VERSION" == "$LATEST_VERSION" ]]; then
+            echo "Version $VERSION has already been released."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: uv sync --locked --no-build --no-install-project
+
+      - name: Run unit tests
+        run: uv run --no-sync --no-build python -m unittest discover -s tests -v
+
+      - name: Build distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          uv build --out-dir dist
+          test -n "$(find dist -maxdepth 1 -type f -name '*.whl' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
+          sha256sum dist/*.whl dist/*.tar.gz > dist/SHA256SUMS
+          ls -lh dist
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create tag
+        shell: bash
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          git tag \
+            --annotate "$TAG" \
+            "$(git rev-parse HEAD)" \
+            --message "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          gh release create "$TAG" \
+            dist/*.whl \
+            dist/*.tar.gz \
+            dist/SHA256SUMS \
+            --title "$TAG" \
+            --verify-tag \
+            --generate-notes
