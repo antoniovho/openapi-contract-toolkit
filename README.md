@@ -55,7 +55,6 @@ qué asset de Release descargar; cada generador referencia uno de esos contratos
 ```toml
 [tool.openapi-contracts]
 generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
-generator-version = "7.10.0"
 
 [tool.openapi-contracts.contracts.test-service]
 version = "0.1.1"
@@ -76,15 +75,15 @@ output = "contracts/open_api/catalog-service-api.yml"
 [tool.openapi-contracts.generators.rest.server.test-service-server]
 contract = "test-service"
 generator = "python-fastapi"
-output = "test_service/generated/test_service_server"
-package-name = "test_service.generated.test_service_server"
+output = "generated/test_service_server"
+package-name = "test_service_server"
 sourceFolder = ""
 
 [tool.openapi-contracts.generators.rest.client.catalog-client]
 contract = "catalog-service"
 generator = "python"
-output = "test_service/generated/catalog_client"
-package-name = "test_service.generated.catalog_client"
+output = "generated/catalog_client"
+package-name = "catalog_client"
 sourceFolder = ""
 ```
 
@@ -96,9 +95,12 @@ https://github.com/antoniovho/app-devtools/releases/download/test-service-api-v0
 ```
 
 `output` es una ruta relativa al directorio que contiene el `pyproject.toml`.
-`package-name` debe coincidir con la ruta Python donde se integrará el código
-generado. Las propiedades no reservadas, como `sourceFolder`, se reenvían a
-OpenAPI Generator; `sourceFolder = ""` evita una carpeta fuente adicional.
+Los generadores pueden crear un proyecto completo en esa ruta, incluyendo su
+propio `pyproject.toml`, pruebas y ficheros de contenedor. Por ello, usa un
+directorio aislado dentro de `generated/`. `package-name` identifica el paquete
+Python dentro de ese proyecto. Las propiedades no reservadas, como
+`sourceFolder`, se reenvían a OpenAPI Generator; `sourceFolder = ""` evita una
+carpeta fuente adicional.
 
 ## Generar Un Servidor
 
@@ -151,11 +153,22 @@ uv run generate-source --rest-server --api test-service-server --dry-run
 
 ## Versiones Del Generador
 
-`generator-command` fija el wrapper y `generator-version` fija la versión del
-motor de OpenAPI Generator. El toolkit pasa la segunda al wrapper mediante
-`OPENAPI_GENERATOR_VERSION`; el wrapper oficial de `@openapitools/openapi-generator-cli`
-la reconoce. `OPENAPI_GENERATOR_CMD` y `OPENAPI_GENERATOR_VERSION` pueden
-sobrescribirlos temporalmente para diagnóstico o CI.
+`generator-command` fija el wrapper de Node. Cuando se utiliza
+`@openapitools/openapi-generator-cli`, fija la versión del motor Java en el
+archivo `openapitools.json` del proyecto consumidor:
+
+```json
+{
+  "generator-cli": {
+    "version": "7.25.0"
+  }
+}
+```
+
+Mantén ese archivo en control de versiones. Es la única fuente de verdad para
+la versión del motor; no declares también `generator-version` en
+`pyproject.toml`. `OPENAPI_GENERATOR_CMD` sigue disponible como override
+temporal para diagnóstico o CI.
 
 ## Desarrollo Del Toolkit
 

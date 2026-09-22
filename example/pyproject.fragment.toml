@@ -10,7 +10,6 @@ generate-source = "tools.openapi_contracts.cli:generate_source_main"
 
 [tool.openapi-contracts]
 generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
-generator-version = "7.10.0"
 
 [tool.openapi-contracts.contracts.test-service]
 version = "0.1.1"
@@ -31,11 +30,13 @@ output = "contracts/catalog-service-api.yml"
 [tool.openapi-contracts.generators.rest.server.api-rest]
 contract = "test-service"
 generator = "python-fastapi"
-output = "generated/server"
-package-name = "test_service_api"
+output = "generated/test_service_server"
+package-name = "test_service_server"
+sourceFolder = ""
 
 [tool.openapi-contracts.generators.rest.client.catalog-client]
 contract = "catalog-service"
 generator = "python"
-output = "generated/clients/catalog_service"
-package-name = "catalog_service_client"
+output = "generated/catalog_client"
+package-name = "catalog_client"
+sourceFolder = ""
