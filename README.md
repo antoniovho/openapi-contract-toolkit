@@ -1,138 +1,172 @@
 # OpenAPI Contract Toolkit
 
-Toolkit portable para proyectos Python + uv que consumen uno o varios contratos OpenAPI publicados como assets inmutables de GitHub Releases.
+Toolkit para proyectos Python con `uv` que consumen contratos OpenAPI publicados
+como assets inmutables de GitHub Releases. Descarga cada contrato con su
+checksum, y genera de forma reproducible código de servidor o cliente.
 
-## Diseño
+La configuración vive en el `pyproject.toml` del proyecto consumidor. Los
+contratos descargados y el código generado deben poder recrearse, por lo que no
+se editan manualmente.
 
-La configuración reproducible vive en `pyproject.toml`. `.env` queda para secretos/configuración de máquina.
+## Requisitos
 
-Cada contrato declara:
-- `version`
-- `repository`
-- `tag` y `artifact` parametrizables con `{version}`
-- `sha256`
-- `output`
+- Python 3.11 o posterior.
+- `uv`.
+- Node.js y `npx` cuando se use el wrapper de OpenAPI Generator mostrado abajo.
+- Un contrato publicado como asset de una GitHub Release y su SHA-256.
 
-Cada generador `server` o `client` referencia un contrato por nombre, evitando duplicar paths/versiones.
+Para una Release privada, configura `GITHUB_TOKEN` en el entorno antes de
+sincronizar el contrato.
 
-## Instalación
+## Instalar En Un Proyecto Consumidor
 
-El toolkit fija Python `3.12.12` y uv `0.10.6` en `.tool-versions`. Con ambos
-plugins disponibles en `asdf`, prepara el entorno local con:
-
-```bash
-asdf install
-uv venv --python 3.12.12 .venv
-```
-
-Ejecuta las pruebas usando el entorno creado:
-
-```bash
-.venv/bin/python -m unittest tests/test_config.py
-```
-
-El paquete instala los tres comandos directamente. Si prefieres copiar `tools/openapi_contracts/` al proyecto consumidor, añade la dependencia y los scripts:
+Añade el wheel de una Release concreta al grupo que uses para desarrollo o
+generación. La URL contiene una versión inmutable; después `uv lock` registra
+el hash del wheel en `uv.lock`.
 
 ```toml
-[project]
-dependencies = [
-	"tomlkit>=0.13,<1.0",
+[project.optional-dependencies]
+dev = [
+  "openapi-contract-toolkit @ https://github.com/antoniovho/openapi-contract-toolkit/releases/download/v0.1.0/openapi_contract_toolkit-0.1.0-py3-none-any.whl",
 ]
-
-[project.scripts]
-contract-sync = "tools.openapi_contracts.cli:contract_sync_main"
-contract-update = "tools.openapi_contracts.cli:contract_update_main"
-generate-source = "tools.openapi_contracts.cli:generate_source_main"
 ```
 
-Requiere Python 3.11+ y no añade dependencias Python externas.
+Después actualiza e instala el entorno:
 
-## Ejemplo
+```bash
+uv lock
+uv sync --extra dev --locked
+```
+
+El paquete proporciona estos comandos:
+
+```text
+contract-sync
+contract-update
+generate-source
+```
+
+## Configurar Contratos Y Generadores
+
+Añade esta configuración al `pyproject.toml` consumidor. Un contrato indica
+qué asset de Release descargar; cada generador referencia uno de esos contratos.
 
 ```toml
+[tool.openapi-contracts]
+generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
+generator-version = "7.10.0"
+
 [tool.openapi-contracts.contracts.test-service]
 version = "0.1.1"
 repository = "antoniovho/app-devtools"
 tag = "test-service-api-v{version}"
 artifact = "test-service-api-{version}.yml"
 sha256 = "ac7d05caca3ad57a88be8892561c83f980ec81dbcc3db33748af45aa818c286c"
-output = "contracts/test-service-api.yml"
+output = "contracts/open_api/test-service-api.yml"
 
 [tool.openapi-contracts.contracts.catalog-service]
 version = "1.4.2"
 repository = "my-org/contracts"
 tag = "catalog-service-api-v{version}"
 artifact = "catalog-service-api-{version}.yml"
-sha256 = "REPLACE_WITH_SHA256"
-output = "contracts/catalog-service-api.yml"
+sha256 = "REPLACE_WITH_RELEASE_SHA256"
+output = "contracts/open_api/catalog-service-api.yml"
 
-[tool.openapi-contracts.generators.rest.server.api-rest]
+[tool.openapi-contracts.generators.rest.server.test-service-server]
 contract = "test-service"
 generator = "python-fastapi"
-output = "generated/server"
-package-name = "test_service_api"
+output = "test_service/generated/test_service_server"
+package-name = "test_service.generated.test_service_server"
+sourceFolder = ""
 
 [tool.openapi-contracts.generators.rest.client.catalog-client]
 contract = "catalog-service"
 generator = "python"
-output = "generated/clients/catalog_service"
-package-name = "catalog_service_client"
+output = "test_service/generated/catalog_client"
+package-name = "test_service.generated.catalog_client"
+sourceFolder = ""
 ```
 
-## Comandos
+`repository`, `tag` y `artifact` forman la URL de descarga. Para el contrato
+`test-service` anterior, el toolkit descarga:
+
+```text
+https://github.com/antoniovho/app-devtools/releases/download/test-service-api-v0.1.1/test-service-api-0.1.1.yml
+```
+
+`output` es una ruta relativa al directorio que contiene el `pyproject.toml`.
+`package-name` debe coincidir con la ruta Python donde se integrará el código
+generado. Las propiedades no reservadas, como `sourceFolder`, se reenvían a
+OpenAPI Generator; `sourceFolder = ""` evita una carpeta fuente adicional.
+
+## Generar Un Servidor
+
+Primero descarga y verifica el contrato fijado. Después genera el servidor:
 
 ```bash
-uv run contract-sync
 uv run contract-sync test-service
-uv run contract-sync test-service --dry-run
+uv run generate-source --rest-server --api test-service-server
+```
 
-uv run contract-update test-service --version 0.1.2
-uv run contract-update test-service --version 0.1.2 --dry-run
+El argumento de `--api` es el último componente de la sección TOML:
+`[tool.openapi-contracts.generators.rest.server.test-service-server]`.
 
-uv run generate-source --rest-server --api api-rest
+El generador vuelve a comprobar el SHA-256 del contrato local. No descarga
+implícitamente para que sincronización y generación puedan revisarse por
+separado.
+
+## Generar Un Cliente
+
+Un cliente sigue el mismo flujo, pero selecciona el rol `client` y su nombre:
+
+```bash
+uv run contract-sync catalog-service
 uv run generate-source --rest-client --api catalog-client
 ```
 
-`contract-sync` descarga primero a un temporal, comprueba SHA-256 y solo entonces sustituye el fichero destino.
+Puedes configurar varios servidores y clientes para el mismo contrato, cada
+uno con su propio nombre, generador, paquete y directorio de salida.
 
-`contract-update` actualiza deliberadamente una dependencia: requiere una versión explícita, descarga el artifact de esa release, calcula su SHA-256 y cambia únicamente `version` y `sha256` del contrato seleccionado. Conserva el formato y los comentarios no relacionados de `pyproject.toml`; si la descarga falla, no modifica la configuración. El artifact local se reemplaza únicamente tras haber sido validado.
+## Actualizar Un Contrato
 
-`generate-source` vuelve a verificar el SHA-256 local antes de generar. No descarga implícitamente: sincronización y generación son responsabilidades separadas.
-
-En resumen:
-
-- `contract-update` cambia la versión que consume el proyecto.
-- `contract-sync` reproduce exactamente la versión ya fijada en Git.
-- `generate-source` genera código usando el contrato local verificado.
-
-## OpenAPI Generator
-
-Fija el wrapper y la versión del motor en el `pyproject.toml` consumidor para no
-requerir exports manuales:
-
-```toml
-[tool.openapi-contracts]
-generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
-generator-version = "7.10.0"
-```
-
-Con esa configuración, basta ejecutar:
+Actualizar una dependencia es explícito. El comando descarga el asset de la
+versión solicitada, calcula su SHA-256, actualiza únicamente `version` y
+`sha256` en el `pyproject.toml`, y sustituye el contrato local solo si la
+descarga es válida:
 
 ```bash
-uv run generate-source --rest-server --api api-rest
+uv run contract-update test-service --version 0.1.2
+uv run generate-source --rest-server --api test-service-server
 ```
 
-`OPENAPI_GENERATOR_CMD` y `OPENAPI_GENERATOR_VERSION` siguen permitidos solo
-como overrides temporales para diagnóstico o CI.
+Revisa y confirma el cambio en `pyproject.toml` antes de incorporarlo. Para
+ensayar los comandos sin cambiar archivos:
 
-## Releases privadas
+```bash
+uv run contract-sync test-service --dry-run
+uv run contract-update test-service --version 0.1.2 --dry-run
+uv run generate-source --rest-server --api test-service-server --dry-run
+```
 
-`contract-sync` usa `GITHUB_TOKEN` si está definido.
+## Versiones Del Generador
 
-## Portabilidad
+`generator-command` fija el wrapper y `generator-version` fija la versión del
+motor de OpenAPI Generator. El toolkit pasa la segunda al wrapper mediante
+`OPENAPI_GENERATOR_VERSION`; el wrapper oficial de `@openapitools/openapi-generator-cli`
+la reconoce. `OPENAPI_GENERATOR_CMD` y `OPENAPI_GENERATOR_VERSION` pueden
+sobrescribirlos temporalmente para diagnóstico o CI.
 
-Para aplicar esto a otro proyecto:
-1. Instala el paquete `openapi-contract-toolkit` o copia `tools/openapi_contracts/`.
-2. Copia/adapta las secciones de `example/pyproject.fragment.toml` si has elegido copiar el código.
-3. Configura los contratos y generadores propios.
-4. Ejecuta `uv run contract-sync`.
+## Desarrollo Del Toolkit
+
+El repositorio fija Python `3.12.12` y `uv 0.10.6` en `.tool-versions`. Con
+`asdf` configurado:
+
+```bash
+asdf install
+uv sync --locked
+uv run python -m unittest discover -s tests -v
+```
+
+Cada Release publica un wheel, un sdist y `SHA256SUMS`. Los proyectos
+consumidores deben fijar una URL de wheel de Release concreta, actualizar el
+lockfile y revisar el cambio de versión deliberadamente.
