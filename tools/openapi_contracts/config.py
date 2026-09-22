@@ -1,7 +1,7 @@
 """Configuration loading and validation for OpenAPI contract tooling."""
 
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 import tomllib
@@ -66,6 +66,17 @@ class Contract:
             f"https://github.com/{self.repository}/releases/download/"
             f"{self.tag}/{self.artifact}"
         )
+
+    def with_version(self, version: str) -> Contract:
+        """Return this contract configured for an explicit candidate version.
+
+        Args:
+            version: Version to apply when rendering the release metadata.
+
+        Returns:
+            A copy of this contract using ``version``.
+        """
+        return replace(self, version=version)
 
 @dataclass(frozen=True)
 class Generator:

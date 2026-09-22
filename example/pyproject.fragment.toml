@@ -1,5 +1,11 @@
+[project]
+dependencies = [
+	"tomlkit>=0.13,<1.0",
+]
+
 [project.scripts]
 contract-sync = "tools.openapi_contracts.cli:contract_sync_main"
+contract-update = "tools.openapi_contracts.cli:contract_update_main"
 generate-source = "tools.openapi_contracts.cli:generate_source_main"
 
 [tool.openapi-contracts.contracts.test-service]

@@ -31,11 +31,17 @@ Ejecuta las pruebas usando el entorno creado:
 .venv/bin/python -m unittest tests/test_config.py
 ```
 
-Copia `tools/openapi_contracts/` al proyecto y añade:
+El paquete instala los tres comandos directamente. Si prefieres copiar `tools/openapi_contracts/` al proyecto consumidor, añade la dependencia y los scripts:
 
 ```toml
+[project]
+dependencies = [
+	"tomlkit>=0.13,<1.0",
+]
+
 [project.scripts]
 contract-sync = "tools.openapi_contracts.cli:contract_sync_main"
+contract-update = "tools.openapi_contracts.cli:contract_update_main"
 generate-source = "tools.openapi_contracts.cli:generate_source_main"
 ```
 
@@ -80,13 +86,24 @@ uv run contract-sync
 uv run contract-sync test-service
 uv run contract-sync test-service --dry-run
 
+uv run contract-update test-service --version 0.1.2
+uv run contract-update test-service --version 0.1.2 --dry-run
+
 uv run generate-source --rest-server --api api-rest
 uv run generate-source --rest-client --api catalog-client
 ```
 
 `contract-sync` descarga primero a un temporal, comprueba SHA-256 y solo entonces sustituye el fichero destino.
 
+`contract-update` actualiza deliberadamente una dependencia: requiere una versión explícita, descarga el artifact de esa release, calcula su SHA-256 y cambia únicamente `version` y `sha256` del contrato seleccionado. Conserva el formato y los comentarios no relacionados de `pyproject.toml`; si la descarga falla, no modifica la configuración. El artifact local se reemplaza únicamente tras haber sido validado.
+
 `generate-source` vuelve a verificar el SHA-256 local antes de generar. No descarga implícitamente: sincronización y generación son responsabilidades separadas.
+
+En resumen:
+
+- `contract-update` cambia la versión que consume el proyecto.
+- `contract-sync` reproduce exactamente la versión ya fijada en Git.
+- `generate-source` genera código usando el contrato local verificado.
 
 ## OpenAPI Generator
 
@@ -111,7 +128,7 @@ Conviene fijar la versión del generador en CI.
 ## Portabilidad
 
 Para aplicar esto a otro proyecto:
-1. Copia `tools/openapi_contracts/`.
-2. Copia/adapta las secciones de `example/pyproject.fragment.toml`.
+1. Instala el paquete `openapi-contract-toolkit` o copia `tools/openapi_contracts/`.
+2. Copia/adapta las secciones de `example/pyproject.fragment.toml` si has elegido copiar el código.
 3. Configura los contratos y generadores propios.
 4. Ejecuta `uv run contract-sync`.

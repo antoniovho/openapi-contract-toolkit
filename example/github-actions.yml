@@ -12,6 +12,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # Instalar Python, uv y una versión fijada de OpenAPI Generator.
+      # Configure GITHUB_TOKEN as a secret if contracts are private.
 
       - name: Sync contracts
         run: uv run contract-sync

@@ -6,6 +6,7 @@ import sys
 from .config import ConfigError, load_config
 from .generate import GenerationError, generate
 from .sync import ContractSyncError, sync_contract
+from .update import ContractUpdateError, update_contract
 
 def contract_sync_main() -> None:
     """Run the command-line workflow that synchronizes configured contracts.
@@ -29,6 +30,33 @@ def contract_sync_main() -> None:
     except (ConfigError, ContractSyncError) as e:
         print(f"error: {e}", file=sys.stderr)
         raise SystemExit(1) from e
+
+
+def contract_update_main() -> None:
+    """Run the command-line workflow that updates one pinned contract version.
+
+    Raises:
+        SystemExit: With status 1 when configuration, download, or update fails.
+    """
+    parser = argparse.ArgumentParser(prog="contract-update")
+    parser.add_argument("contract")
+    parser.add_argument("--version", required=True)
+    parser.add_argument("--pyproject", default="pyproject.toml")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+    try:
+        configuration = load_config(args.pyproject)
+        update_contract(
+            configuration,
+            args.pyproject,
+            args.contract,
+            args.version,
+            args.dry_run,
+        )
+    except (ConfigError, ContractSyncError, ContractUpdateError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise SystemExit(1) from error
+
 
 def generate_source_main() -> None:
     """Run the command-line workflow that generates source from a contract.
