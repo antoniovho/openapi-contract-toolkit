@@ -124,6 +124,8 @@ class Configuration:
     root: Path
     contracts: dict[str, Contract]
     generators: dict[tuple[str, str, str], Generator]
+    generator_command: str = "openapi-generator-cli"
+    generator_version: str | None = None
 
 def required(data: dict[str, Any], key: str, where: str) -> Any:
     """Return a required mapping value or raise a contextual configuration error.
@@ -160,6 +162,15 @@ def load_openapi_contracts_section(data: dict[str, Any]) -> dict[str, Any]:
         return data["tool"]["openapi-contracts"]
     except KeyError as error:
         raise ConfigError("Missing [tool.openapi-contracts] in pyproject.toml") from error
+
+
+def optional_text(data: dict[str, Any], key: str, where: str) -> str | None:
+    value = data.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigError(f"'{key}' in {where} must be a non-empty string")
+    return value
 
 
 def load_contracts(raw_contracts: dict[str, Any], root: Path) -> dict[str, Contract]:
@@ -320,4 +331,16 @@ def load_config(pyproject: str | Path = "pyproject.toml") -> Configuration:
     section = load_openapi_contracts_section(data)
     contracts = load_contracts(section.get("contracts", {}), root)
     generators = load_generators(section.get("generators", {}), contracts, root)
-    return Configuration(root, contracts, generators)
+    generator_command = optional_text(
+        section, "generator-command", "[tool.openapi-contracts]"
+    ) or "openapi-generator-cli"
+    generator_version = optional_text(
+        section, "generator-version", "[tool.openapi-contracts]"
+    )
+    return Configuration(
+        root,
+        contracts,
+        generators,
+        generator_command,
+        generator_version,
+    )

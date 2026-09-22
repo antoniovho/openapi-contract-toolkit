@@ -107,19 +107,23 @@ En resumen:
 
 ## OpenAPI Generator
 
-Por defecto se invoca:
+Fija el wrapper y la versión del motor en el `pyproject.toml` consumidor para no
+requerir exports manuales:
 
-```bash
-openapi-generator-cli
+```toml
+[tool.openapi-contracts]
+generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
+generator-version = "7.10.0"
 ```
 
-Puedes adaptar la instalación a cada proyecto o CI. También puedes indicar otro comando:
+Con esa configuración, basta ejecutar:
 
 ```bash
-OPENAPI_GENERATOR_CMD="npx --yes @openapitools/openapi-generator-cli" uv run generate-source --rest-server --api api-rest
+uv run generate-source --rest-server --api api-rest
 ```
 
-Conviene fijar la versión del generador en CI.
+`OPENAPI_GENERATOR_CMD` y `OPENAPI_GENERATOR_VERSION` siguen permitidos solo
+como overrides temporales para diagnóstico o CI.
 
 ## Releases privadas
 

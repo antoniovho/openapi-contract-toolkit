@@ -10,7 +10,7 @@ import tomlkit
 from tomlkit.exceptions import TOMLKitError
 
 from .config import Configuration, Contract
-from .sync import ContractSyncError, download_contract, sha256_file
+from .sync import download_contract, sha256_file
 
 
 class ContractUpdateError(RuntimeError):

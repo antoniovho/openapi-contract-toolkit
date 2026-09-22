@@ -18,16 +18,47 @@ class GenerateTest(unittest.TestCase):
             contract = Contract("catalog", "1.0.0", "org/contracts", "v{version}", "catalog.yaml", hashlib.sha256(content).hexdigest(), root / "catalog.yaml")
             contract.output.write_bytes(content)
             definition = Generator("rest", "client", "catalog-client", "catalog", "python", root / "generated", "catalog_client", {"library": "urllib3"})
-            configuration = Configuration(root, {"catalog": contract}, {("rest", "client", "catalog-client"): definition})
+            configuration = Configuration(
+                root,
+                {"catalog": contract},
+                {("rest", "client", "catalog-client"): definition},
+                "configured-generator",
+                "7.10.0",
+            )
 
-            with patch.dict(os.environ, {"OPENAPI_GENERATOR_CMD": "generator"}), patch("tools.openapi_contracts.generate.subprocess.run") as run:
+            with patch.dict(os.environ, {}, clear=True), patch(
+                "tools.openapi_contracts.generate.subprocess.run"
+            ) as run:
                 generate(configuration, definition)
 
-            self.assertEqual(run.call_args.args[0][0], "generator")
+            self.assertEqual(run.call_args.args[0][0], "configured-generator")
+            self.assertEqual(run.call_args.kwargs["env"]["OPENAPI_GENERATOR_VERSION"], "7.10.0")
             self.assertIn(
                 "packageName=catalog_client",
                 run.call_args.args[0][run.call_args.args[0].index("--additional-properties") + 1],
             )
+
+    def test_when_environment_overrides_generator_expect_override_used(self):
+        content = b"openapi: 3.0.0\n"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            contract = Contract("catalog", "1.0.0", "org/contracts", "v{version}", "catalog.yaml", hashlib.sha256(content).hexdigest(), root / "catalog.yaml")
+            contract.output.write_bytes(content)
+            definition = Generator("rest", "client", "catalog-client", "catalog", "python", root / "generated", None, {})
+            configuration = Configuration(root, {"catalog": contract}, {}, "configured-generator", "7.10.0")
+
+            with patch.dict(
+                os.environ,
+                {
+                    "OPENAPI_GENERATOR_CMD": "override-generator",
+                    "OPENAPI_GENERATOR_VERSION": "7.11.0",
+                },
+                clear=True,
+            ), patch("tools.openapi_contracts.generate.subprocess.run") as run:
+                generate(configuration, definition)
+
+            self.assertEqual(run.call_args.args[0][0], "override-generator")
+            self.assertEqual(run.call_args.kwargs["env"]["OPENAPI_GENERATOR_VERSION"], "7.11.0")
 
     def test_when_contract_is_missing_expect_no_generator_command(self):
         with tempfile.TemporaryDirectory() as directory:

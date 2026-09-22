@@ -12,6 +12,10 @@ repository = "org/contracts"
 sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 output = "contracts/a.yml"
 
+[tool.openapi-contracts]
+generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
+generator-version = "7.10.0"
+
 [tool.openapi-contracts.contracts.b]
 version = "2.0.0"
 repository = "org/contracts"
@@ -43,6 +47,11 @@ output = "generated/client"
             self.assertEqual(
                 cfg.generators[("rest", "client", "client-api")].contract, "b"
             )
+            self.assertEqual(
+                cfg.generator_command,
+                "npx --yes @openapitools/openapi-generator-cli@2.41.0",
+            )
+            self.assertEqual(cfg.generator_version, "7.10.0")
 
     def test_when_contract_has_explicit_url_expect_rendered_release_metadata(self):
         toml = """

@@ -8,6 +8,10 @@ contract-sync = "tools.openapi_contracts.cli:contract_sync_main"
 contract-update = "tools.openapi_contracts.cli:contract_update_main"
 generate-source = "tools.openapi_contracts.cli:generate_source_main"
 
+[tool.openapi-contracts]
+generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
+generator-version = "7.10.0"
+
 [tool.openapi-contracts.contracts.test-service]
 version = "0.1.1"
 repository = "antoniovho/app-devtools"
