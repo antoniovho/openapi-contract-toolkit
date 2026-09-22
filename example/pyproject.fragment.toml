@@ -1,0 +1,31 @@
+[project.scripts]
+contract-sync = "tools.openapi_contracts.cli:contract_sync_main"
+generate-source = "tools.openapi_contracts.cli:generate_source_main"
+
+[tool.openapi-contracts.contracts.test-service]
+version = "0.1.1"
+repository = "antoniovho/app-devtools"
+tag = "test-service-api-v{version}"
+artifact = "test-service-api-{version}.yml"
+sha256 = "ac7d05caca3ad57a88be8892561c83f980ec81dbcc3db33748af45aa818c286c"
+output = "contracts/test-service-api.yml"
+
+[tool.openapi-contracts.contracts.catalog-service]
+version = "1.4.2"
+repository = "my-org/contracts"
+tag = "catalog-service-api-v{version}"
+artifact = "catalog-service-api-{version}.yml"
+sha256 = "REPLACE_WITH_SHA256"
+output = "contracts/catalog-service-api.yml"
+
+[tool.openapi-contracts.generators.rest.server.api-rest]
+contract = "test-service"
+generator = "python-fastapi"
+output = "generated/server"
+package-name = "test_service_api"
+
+[tool.openapi-contracts.generators.rest.client.catalog-client]
+contract = "catalog-service"
+generator = "python"
+output = "generated/clients/catalog_service"
+package-name = "catalog_service_client"
