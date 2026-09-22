@@ -10,9 +10,10 @@ se editan manualmente.
 
 ## Requisitos
 
-- Python 3.11 o posterior.
-- `uv`.
-- Node.js y `npx` cuando se use el wrapper de OpenAPI Generator mostrado abajo.
+- Python >= 3.12
+- `uv`
+- Node.js >= 22
+- `npm`/`npx` cuando se use el wrapper de OpenAPI Generator.
 - Un contrato publicado como asset de una GitHub Release y su SHA-256.
 
 Para una Release privada, configura `GITHUB_TOKEN` en el entorno antes de
