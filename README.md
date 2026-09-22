@@ -17,6 +17,20 @@ Cada generador `server` o `client` referencia un contrato por nombre, evitando d
 
 ## Instalación
 
+El toolkit fija Python `3.12.12` y uv `0.10.6` en `.tool-versions`. Con ambos
+plugins disponibles en `asdf`, prepara el entorno local con:
+
+```bash
+asdf install
+uv venv --python 3.12.12 .venv
+```
+
+Ejecuta las pruebas usando el entorno creado:
+
+```bash
+.venv/bin/python -m unittest tests/test_config.py
+```
+
 Copia `tools/openapi_contracts/` al proyecto y añade:
 
 ```toml

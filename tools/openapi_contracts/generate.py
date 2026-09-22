@@ -23,7 +23,7 @@ def build_command(config: Configuration, definition: Generator) -> list[str]:
         raise GenerationError("OPENAPI_GENERATOR_CMD is empty")
     command += [
         "generate", "-i", str(contract.output),
-        "-g", definition.generator,
+        "-g", definition.generator_name,
         "-o", str(definition.output),
     ]
     properties = dict(definition.additional_properties)
