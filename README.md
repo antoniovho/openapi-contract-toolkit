@@ -55,6 +55,7 @@ qué asset de Release descargar; cada generador referencia uno de esos contratos
 ```toml
 [tool.openapi-contracts]
 generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
+generator-version = "7.25.0"
 
 [tool.openapi-contracts.contracts.test-service]
 version = "0.1.1"
@@ -153,22 +154,21 @@ uv run generate-source --rest-server --api test-service-server --dry-run
 
 ## Versiones Del Generador
 
-`generator-command` fija el wrapper de Node. Cuando se utiliza
-`@openapitools/openapi-generator-cli`, fija la versión del motor Java en el
-archivo `openapitools.json` del proyecto consumidor:
+`generator-command` fija el wrapper de Node y `generator-version` fija la
+versión del motor de OpenAPI Generator. El toolkit exporta ese valor como
+`OPENAPI_GENERATOR_VERSION` antes de ejecutar el wrapper:
 
-```json
-{
-  "generator-cli": {
-    "version": "7.25.0"
-  }
-}
+```toml
+[tool.openapi-contracts]
+generator-command = "npx --yes @openapitools/openapi-generator-cli@2.41.0"
+generator-version = "7.25.0"
 ```
 
-Mantén ese archivo en control de versiones. Es la única fuente de verdad para
-la versión del motor; no declares también `generator-version` en
-`pyproject.toml`. `OPENAPI_GENERATOR_CMD` sigue disponible como override
-temporal para diagnóstico o CI.
+Mantén estos valores en control de versiones y no declares una versión distinta
+en `openapitools.json`. `OPENAPI_GENERATOR_CMD` y
+`OPENAPI_GENERATOR_VERSION` permiten overrides temporales para diagnóstico o
+CI; las variables de entorno tienen prioridad sobre la configuración del
+proyecto.
 
 ## Desarrollo Del Toolkit
 
