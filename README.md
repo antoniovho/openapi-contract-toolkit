@@ -106,7 +106,13 @@ carpeta fuente adicional.
 ## Generar Un Servidor
 
 Primero descarga y verifica el contrato fijado. Después genera el servidor:
+```bash
+rm -rf generated/test_service_server
+uv run --no-sync generate-source --rest-server --api test-service-server
+uv sync
+```
 
+o
 ```bash
 uv run contract-sync test-service
 uv run generate-source --rest-server --api test-service-server
