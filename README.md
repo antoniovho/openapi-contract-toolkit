@@ -109,7 +109,7 @@ Primero descarga y verifica el contrato fijado. Después genera el servidor:
 ```bash
 rm -rf generated/test_service_server
 uv run --no-sync generate-source --rest-server --api test-service-server
-uv sync
+uv sync --extra dev
 ```
 
 o
