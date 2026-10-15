@@ -100,6 +100,8 @@ class Generator:
         output: Directory where generated source is written.
         package_name: Optional package name passed to the generator.
         additional_properties: Additional generator-specific properties.
+        template_dir: Optional directory containing OpenAPI Generator template overrides.
+        template_profile: Optional built-in OpenAPI Generator template profile.
     """
 
     protocol: str
@@ -110,6 +112,8 @@ class Generator:
     output: Path
     package_name: str | None
     additional_properties: dict[str, Any]
+    template_dir: Path | None = None
+    template_profile: str | None = None
 
 @dataclass(frozen=True)
 class Configuration:
@@ -294,7 +298,29 @@ def build_generator(
     if contract not in contracts:
         raise ConfigError(f"{where} references unknown contract '{contract}'")
 
-    reserved = {"contract", "generator", "output", "package-name"}
+    template_dir = optional_text(raw_generator, "template-dir", where)
+    template_profile = optional_text(raw_generator, "template-profile", where)
+    if template_dir and template_profile:
+        raise ConfigError(
+            f"{where} cannot define both 'template-dir' and 'template-profile'"
+        )
+    if template_profile and template_profile != "python-fastapi-http":
+        raise ConfigError(
+            f"{where} references unsupported template profile: {template_profile}"
+        )
+    if template_profile and raw_generator.get("generator") != "python-fastapi":
+        raise ConfigError(
+            f"{where} template profile '{template_profile}' requires generator "
+            "'python-fastapi'"
+        )
+    reserved = {
+        "contract",
+        "generator",
+        "output",
+        "package-name",
+        "template-dir",
+        "template-profile",
+    }
     return Generator(
         protocol=protocol,
         role=role,
@@ -306,6 +332,8 @@ def build_generator(
         additional_properties={
             key: value for key, value in raw_generator.items() if key not in reserved
         },
+        template_dir=(root / template_dir).resolve() if template_dir else None,
+        template_profile=template_profile,
     )
 
 

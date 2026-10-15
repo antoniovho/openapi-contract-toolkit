@@ -79,6 +79,7 @@ generator = "python-fastapi"
 output = "generated/test_service_server"
 package-name = "test_service_server"
 sourceFolder = ""
+template-profile = "python-fastapi-http"
 
 [tool.openapi-contracts.generators.rest.client.catalog-client]
 contract = "catalog-service"
@@ -87,6 +88,14 @@ output = "generated/catalog_client"
 package-name = "catalog_client"
 sourceFolder = ""
 ```
+
+`template-profile = "python-fastapi-http"` aplica la plantilla genérica incluida
+en el toolkit para que FastAPI convierta correctamente cualquier parámetro HTTP
+que recibe como texto. Usa el tipo ya resuelto por OpenAPI Generator, por lo
+que cubre enteros, números, booleanos, enums, UUID, fechas y listas sin una
+tabla de tipos ni plantillas por proyecto. Mantiene la validación estricta de
+los cuerpos JSON. Es exclusivo con `template-dir`, que continúa disponible
+para personalizaciones específicas y se resuelve respecto al `pyproject.toml`.
 
 `repository`, `tag` y `artifact` forman la URL de descarga. Para el contrato
 `test-service` anterior, el toolkit descarga:

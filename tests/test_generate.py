@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from tools.openapi_contracts.config import Configuration, Contract, Generator
-from tools.openapi_contracts.generate import build_command, generate
+from tools.openapi_contracts.generate import build_command, generate, template_directory
 from tools.openapi_contracts.sync import ContractSyncError
 
 
@@ -17,7 +17,7 @@ class GenerateTest(unittest.TestCase):
             root = Path(directory)
             contract = Contract("catalog", "1.0.0", "org/contracts", "v{version}", "catalog.yaml", hashlib.sha256(content).hexdigest(), root / "catalog.yaml")
             contract.output.write_bytes(content)
-            definition = Generator("rest", "client", "catalog-client", "catalog", "python", root / "generated", "catalog_client", {"library": "urllib3"})
+            definition = Generator("rest", "client", "catalog-client", "catalog", "python", root / "generated", "catalog_client", {"library": "urllib3"}, root / "templates")
             configuration = Configuration(
                 root,
                 {"catalog": contract},
@@ -37,6 +37,7 @@ class GenerateTest(unittest.TestCase):
                 "packageName=catalog_client",
                 run.call_args.args[0][run.call_args.args[0].index("--additional-properties") + 1],
             )
+            self.assertEqual(run.call_args.args[0][run.call_args.args[0].index("-t") + 1], str(root / "templates"))
 
     def test_when_environment_overrides_generator_expect_override_used(self):
         content = b"openapi: 3.0.0\n"
@@ -59,6 +60,18 @@ class GenerateTest(unittest.TestCase):
 
             self.assertEqual(run.call_args.args[0][0], "override-generator")
             self.assertEqual(run.call_args.kwargs["env"]["OPENAPI_GENERATOR_VERSION"], "7.11.0")
+
+    def test_when_python_fastapi_http_profile_expect_bundled_templates_used(self):
+        definition = Generator(
+            "rest", "server", "server", "catalog", "python-fastapi",
+            Path("generated"), None, {}, template_profile="python-fastapi-http"
+        )
+
+        self.assertTrue(
+            str(template_directory(definition)).endswith(
+                "templates/python-fastapi-http"
+            )
+        )
 
     def test_when_contract_is_missing_expect_no_generator_command(self):
         with tempfile.TemporaryDirectory() as directory:
