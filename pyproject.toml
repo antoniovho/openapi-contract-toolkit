@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openapi-contract-toolkit"
-version = "0.1.1"
+version = "0.1.2"
 description = "Deterministic synchronization and generation for external OpenAPI contracts."
 readme = "README.md"
 requires-python = ">=3.11"
