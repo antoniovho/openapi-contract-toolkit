@@ -29,6 +29,7 @@ contract = "a"
 generator = "python-fastapi"
 output = "generated/server"
 package-name = "example_api"
+template-profile = "python-fastapi-http"
 
 [tool.openapi-contracts.generators.rest.client.client-api]
 contract = "b"
@@ -52,6 +53,10 @@ output = "generated/client"
                 "npx --yes @openapitools/openapi-generator-cli@2.41.0",
             )
             self.assertEqual(cfg.generator_version, "7.10.0")
+            self.assertEqual(
+                cfg.generators[("rest", "server", "api-rest")].template_profile,
+                "python-fastapi-http",
+            )
 
     def test_when_contract_has_explicit_url_expect_rendered_release_metadata(self):
         toml = """
@@ -94,6 +99,27 @@ output = "generated/client"
             pyproject.write_text(toml)
 
             with self.assertRaisesRegex(ConfigError, "unknown contract 'missing'"):
+                load_config(pyproject)
+
+    def test_when_profile_is_not_compatible_with_generator_expect_config_error(self):
+        toml = """
+[tool.openapi-contracts.contracts.catalog]
+version = "1.2.3"
+repository = "org/contracts"
+sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+output = "contracts/catalog.yaml"
+
+[tool.openapi-contracts.generators.rest.client.catalog]
+contract = "catalog"
+generator = "python"
+output = "generated/client"
+template-profile = "python-fastapi-http"
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            pyproject = Path(directory) / "pyproject.toml"
+            pyproject.write_text(toml)
+
+            with self.assertRaisesRegex(ConfigError, "requires generator 'python-fastapi'"):
                 load_config(pyproject)
 
     def test_when_required_contract_value_is_missing_expect_config_error(self):

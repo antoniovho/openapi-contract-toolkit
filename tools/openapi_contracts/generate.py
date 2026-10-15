@@ -4,11 +4,26 @@ from __future__ import annotations
 import os
 import shlex
 import subprocess
+from pathlib import Path
 from .config import Configuration, Generator
 from .sync import verify_contract
 
 class GenerationError(RuntimeError):
     """Raised when OpenAPI source generation cannot complete."""
+
+
+def template_directory(definition: Generator) -> Path | None:
+    """Resolve the template directory selected for a generator definition.
+
+    Built-in profiles make generator fixes reusable across projects. A project
+    can still opt into its own ``template-dir`` when it needs unrelated
+    customization.
+    """
+    if definition.template_dir:
+        return definition.template_dir
+    if definition.template_profile == "python-fastapi-http":
+        return Path(__file__).parent / "templates" / "python-fastapi-http"
+    return None
 
 def _value(value: object) -> str:
     """Convert a generator property value to its command-line representation.
@@ -49,6 +64,8 @@ def build_command(config: Configuration, definition: Generator) -> list[str]:
         "-g", definition.generator_name,
         "-o", str(definition.output),
     ]
+    if template_dir := template_directory(definition):
+        command += ["-t", str(template_dir)]
     properties = dict(definition.additional_properties)
     if definition.package_name:
         properties["packageName"] = definition.package_name
