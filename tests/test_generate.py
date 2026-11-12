@@ -73,6 +73,18 @@ class GenerateTest(unittest.TestCase):
             )
         )
 
+    def test_when_python_fastapi_http_profile_expect_primary_success_status_code(self):
+        definition = Generator(
+            "rest", "server", "server", "catalog", "python-fastapi",
+            Path("generated"), None, {}, template_profile="python-fastapi-http"
+        )
+
+        template = (template_directory(definition) / "api.mustache").read_text()
+
+        self.assertIn("{{#responses}}\n    {{#-first}}\n    {{#is2xx}}", template)
+        self.assertIn("{{#is2xx}}", template)
+        self.assertIn("status_code={{code}},", template)
+
     def test_when_contract_is_missing_expect_no_generator_command(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
