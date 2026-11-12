@@ -94,8 +94,16 @@ en el toolkit para que FastAPI convierta correctamente cualquier parámetro HTTP
 que recibe como texto. Usa el tipo ya resuelto por OpenAPI Generator, por lo
 que cubre enteros, números, booleanos, enums, UUID, fechas y listas sin una
 tabla de tipos ni plantillas por proyecto. Mantiene la validación estricta de
-los cuerpos JSON. Es exclusivo con `template-dir`, que continúa disponible
-para personalizaciones específicas y se resuelve respecto al `pyproject.toml`.
+los cuerpos JSON. También declara en el decorador de FastAPI el código de la
+respuesta primaria `2xx` del contrato, evitando que respuestas `201` o `202`
+se envíen erróneamente como `200`. Para este perfil, la primera respuesta
+declarada en `responses` debe ser esa respuesta primaria de éxito (`2xx`): el
+generador utiliza su código como `status_code`. Las respuestas de error deben
+declararse después. Aunque los ficheros YAML preservan ese orden, OpenAPI
+modela `responses` como un mapa; por tanto, es una convención del perfil de
+generación y no una semántica del estándar. Es exclusivo con `template-dir`,
+que continúa disponible para personalizaciones específicas y se resuelve
+respecto al `pyproject.toml`.
 
 `repository`, `tag` y `artifact` forman la URL de descarga. Para el contrato
 `test-service` anterior, el toolkit descarga:
